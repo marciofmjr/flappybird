@@ -7,6 +7,16 @@ const sounds = {
 
 sounds.hit.src = './sounds/hit.wav'
 
+const AUDIO_ENABLED = false
+
+function playSound(sound) {
+  if (AUDIO_ENABLED) {
+    sound.play()
+  }
+}
+
+let frames = 0
+
 function getBrowserSize() {
   return {
     width: Math.max(
@@ -61,31 +71,39 @@ const background = {
     )
   }
 }
-
-const floor = {
-  spriteX: 0,
-  spriteY: 610,
-  width: 224,
-  height: 112,
-  x: 0,
-  y: canvas.height - 112,
-  draw() {
-    context.drawImage(
-      sprites,
-      floor.spriteX, floor.spriteY, // x, y position in sprite
-      floor.width, floor.height, // size in sprite
-      floor.x, floor.y, // x, y in screen
-      floor.width, floor.height // size in screen
-    )
-    context.drawImage(
-      sprites,
-      floor.spriteX, floor.spriteY, // x, y position in sprite
-      floor.width, floor.height, // size in sprite
-      (floor.x + floor.width), floor.y, // x, y in screen
-      floor.width, floor.height // size in screen
-    )
+let floor = {}
+function initFloor() {
+  return {
+    spriteX: 0,
+    spriteY: 610,
+    width: 224,
+    height: 112,
+    x: 0,
+    y: canvas.height - 112,
+    update() {
+      const floorMoviment = 1
+      const repeteIn = floor.width / 2
+      floor.x = (floor.x - floorMoviment) % repeteIn
+    },
+    draw() {
+      context.drawImage(
+        sprites,
+        floor.spriteX, floor.spriteY, // x, y position in sprite
+        floor.width, floor.height, // size in sprite
+        floor.x, floor.y, // x, y in screen
+        floor.width, floor.height // size in screen
+      )
+      context.drawImage(
+        sprites,
+        floor.spriteX, floor.spriteY, // x, y position in sprite
+        floor.width, floor.height, // size in sprite
+        (floor.x + floor.width), floor.y, // x, y in screen
+        floor.width, floor.height // size in screen
+      )
+    }
   }
 }
+
 
 function initBird() {
   return {
@@ -100,7 +118,7 @@ function initBird() {
     jumpWeight: 4.6,
     update() {
       if (birdHitFloor(bird, floor)) {
-        sounds.hit.play()
+        playSound(sounds.hit)
         setTimeout(function () {
           goToScreen(screens.START)
         }, 500)
@@ -109,10 +127,29 @@ function initBird() {
       bird.speed = bird.speed + bird.gravity
       bird.y = bird.y + bird.speed
     },
+    animate: [
+      { spriteX: 0, spriteY: 0 }, // wing up
+      { spriteX: 0, spriteY: 26 }, // wing middle
+      { spriteX: 0, spriteY: 52 }, // wing down
+      { spriteX: 0, spriteY: 26 }, // wing middle
+    ],
+    animationIndex: 0,
+    updateAnimationIndex() {
+      const framesInterval = 8
+      const passInterval = frames % framesInterval === 0
+      if (passInterval) {
+        const incrementBase = 1
+        const increment = incrementBase + bird.animationIndex
+        const animations = bird.animate.length
+        bird.animationIndex = increment % animations
+      }
+    },
     draw() {
+      bird.updateAnimationIndex()
+      const { spriteX, spriteY } = bird.animate[bird.animationIndex]
       context.drawImage(
         sprites,
-        bird.spriteX, bird.spriteY, // x, y position in sprite
+        spriteX, spriteY, // x, y position in sprite
         bird.width, bird.height, // size in sprite
         bird.x, bird.y, // x, y in screen
         bird.width, bird.height // size in screen
@@ -159,6 +196,7 @@ const screens = {}
 screens.START = {
   init() {
     bird = initBird()
+    floor = initFloor()
   },
   draw() {
     background.draw()
@@ -170,7 +208,9 @@ screens.START = {
   click() {
     goToScreen(screens.GAME)
   },
-  update() { }
+  update() {
+    floor.update()
+  }
 }
 screens.GAME = {
   draw() {
@@ -184,13 +224,15 @@ screens.GAME = {
     bird.jump()
   },
   update() {
-
+    floor.update()
   }
 }
 
 function loop() {
   activeScreen.draw()
   activeScreen.update()
+
+  frames++
   requestAnimationFrame(loop)
 }
 
