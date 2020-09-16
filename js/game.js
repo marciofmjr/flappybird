@@ -1,6 +1,12 @@
 const sprites = new Image()
 sprites.src = './img/sprites.png'
 
+const sounds = {
+  hit: new Audio
+}
+
+sounds.hit.src = './sounds/hit.wav'
+
 function getBrowserSize() {
   return {
     width: Math.max(
@@ -25,6 +31,8 @@ const canvas = document.querySelector('canvas')
 // canvas.width = browser.width
 // canvas.height = browser.height
 const context = canvas.getContext('2d')
+
+let bird = {}
 
 const background = {
   spriteX: 390,
@@ -79,27 +87,40 @@ const floor = {
   }
 }
 
-const bird = {
-  spriteX: 0,
-  spriteY: 0,
-  width: 33,
-  height: 24,
-  x: 10,
-  y: 50,
-  speed: 0,
-  gravity: 0.25,
-  update() {
-    bird.speed = bird.speed + bird.gravity
-    bird.y = bird.y + bird.speed
-  },
-  draw() {
-    context.drawImage(
-      sprites,
-      bird.spriteX, bird.spriteY, // x, y position in sprite
-      bird.width, bird.height, // size in sprite
-      bird.x, bird.y, // x, y in screen
-      bird.width, bird.height // size in screen
-    )
+function initBird() {
+  return {
+    spriteX: 0,
+    spriteY: 0,
+    width: 33,
+    height: 24,
+    x: 10,
+    y: 50,
+    speed: 0,
+    gravity: 0.25,
+    jumpWeight: 4.6,
+    update() {
+      if (birdHitFloor(bird, floor)) {
+        sounds.hit.play()
+        setTimeout(function () {
+          goToScreen(screens.START)
+        }, 500)
+        return
+      }
+      bird.speed = bird.speed + bird.gravity
+      bird.y = bird.y + bird.speed
+    },
+    draw() {
+      context.drawImage(
+        sprites,
+        bird.spriteX, bird.spriteY, // x, y position in sprite
+        bird.width, bird.height, // size in sprite
+        bird.x, bird.y, // x, y in screen
+        bird.width, bird.height // size in screen
+      )
+    },
+    jump() {
+      bird.speed = - bird.jumpWeight
+    }
   }
 }
 
@@ -121,13 +142,24 @@ const getReadyMessage = {
   }
 }
 
+function birdHitFloor(bird, floor) {
+  return (bird.y + bird.height) >= floor.y
+}
+
 let activeScreen = {}
 function goToScreen(newScreen) {
   activeScreen = newScreen
+
+  if (activeScreen.init) {
+    activeScreen.init()
+  }
 }
 
 const screens = {}
 screens.START = {
+  init() {
+    bird = initBird()
+  },
   draw() {
     background.draw()
     floor.draw()
@@ -147,6 +179,9 @@ screens.GAME = {
 
     bird.draw()
     bird.update()
+  },
+  click() {
+    bird.jump()
   },
   update() {
 
