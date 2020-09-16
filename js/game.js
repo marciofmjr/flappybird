@@ -103,14 +103,67 @@ const bird = {
   }
 }
 
+const getReadyMessage = {
+  spriteX: 134,
+  spriteY: 0,
+  width: 174,
+  height: 152,
+  x: (canvas.width / 2) - (175 / 2),
+  y: 50,
+  draw() {
+    context.drawImage(
+      sprites,
+      getReadyMessage.spriteX, getReadyMessage.spriteY, // x, y position in sprite
+      getReadyMessage.width, getReadyMessage.height, // size in sprite
+      getReadyMessage.x, getReadyMessage.y, // x, y in screen
+      getReadyMessage.width, getReadyMessage.height // size in screen
+    )
+  }
+}
+
+let activeScreen = {}
+function goToScreen(newScreen) {
+  activeScreen = newScreen
+}
+
+const screens = {}
+screens.START = {
+  draw() {
+    background.draw()
+    floor.draw()
+    bird.draw()
+
+    getReadyMessage.draw()
+  },
+  click() {
+    goToScreen(screens.GAME)
+  },
+  update() { }
+}
+screens.GAME = {
+  draw() {
+    background.draw()
+    floor.draw()
+
+    bird.draw()
+    bird.update()
+  },
+  update() {
+
+  }
+}
+
 function loop() {
-  background.draw()
-  floor.draw()
-
-  bird.draw()
-  bird.update()
-
+  activeScreen.draw()
+  activeScreen.update()
   requestAnimationFrame(loop)
 }
 
+window.addEventListener('click', function () {
+  if (activeScreen.click) {
+    activeScreen.click()
+  }
+})
+
+goToScreen(screens.START)
 loop()
