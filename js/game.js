@@ -1,16 +1,22 @@
 const sprites = new Image()
 sprites.src = './img/sprites.png'
 
+const configs = {
+  AUDIO: true,
+  PIPES_SPACING: 90,
+  PIPES_SPEED: 2,
+  FLOOR_MOVIMENT: 1,
+  HIT_GAP: 4
+}
+
 const sounds = {
   hit: new Audio
 }
 
 sounds.hit.src = './sounds/hit.wav'
 
-const AUDIO_ENABLED = false
-
 function playSound(sound) {
-  if (AUDIO_ENABLED) {
+  if (configs.AUDIO) {
     sound.play()
   }
 }
@@ -81,7 +87,7 @@ function initFloor() {
     x: 0,
     y: canvas.height - 112,
     update() {
-      const floorMoviment = 1
+      const floorMoviment = configs.FLOOR_MOVIMENT
       const repeteIn = floor.width / 2
       floor.x = (floor.x - floorMoviment) % repeteIn
     },
@@ -100,6 +106,84 @@ function initFloor() {
         (floor.x + floor.width), floor.y, // x, y in screen
         floor.width, floor.height // size in screen
       )
+    }
+  }
+}
+
+let pipes = {}
+function initPipes() {
+  return {
+    up: {
+      spriteX: 52,
+      spriteY: 169,
+    },
+    down: {
+      spriteX: 0,
+      spriteY: 169,
+    },
+    space: configs.PIPES_SPACING,
+    width: 52,
+    height: 400,
+    pairs: [],
+    draw() {
+      this.pairs.forEach(function (pair) {
+        const randomY = -200
+        upX = pair.x
+        upY = pair.y
+        context.drawImage(
+          sprites,
+          pipes.up.spriteX, pipes.up.spriteY, // x, y position in sprite
+          pipes.width, pipes.height, // size in sprite
+          upX, upY, // x, y in screen
+          pipes.width, pipes.height // size in screen
+        )
+
+        downX = pair.x
+        downY = pipes.height + pipes.space + pair.y
+        context.drawImage(
+          sprites,
+          pipes.down.spriteX, pipes.down.spriteY, // x, y position in sprite
+          pipes.width, pipes.height, // size in sprite
+          downX, downY, // x, y in screen
+          pipes.width, pipes.height // size in screen
+        )
+
+        pair.up = { x: upX, y: pipes.height + upY }
+        pair.down = { x: downX, y: downY }
+      })
+    },
+    birdHitPipe(pair) {
+      const birdHead = bird.y
+      const birdFoot = bird.y + bird.height
+
+      if ((bird.x + (bird.width - configs.HIT_GAP )) >= pair.x) {
+        if (birdHead <= pair.up.y || birdFoot >= pair.down.y) {
+          playSound(sounds.hit)
+          return true
+        }
+      }
+      return false
+    },
+    update() {
+      const pass100frames = frames % 100 === 0
+      if (pass100frames) {
+        this.pairs.push({
+          x: canvas.width,
+          y: -150 * (Math.random() + 1),
+        })
+      }
+
+      this.pairs.forEach(function (pair) {
+        pair.x = pair.x - configs.PIPES_SPEED
+
+        if (pipes.birdHitPipe(pair)) {
+          goToScreen(screens.START)
+        }
+
+        if (pair.x + pipes.width <= 0) {
+          pipes.pairs.shift()
+        }
+      })
     }
   }
 }
@@ -213,8 +297,12 @@ screens.START = {
   }
 }
 screens.GAME = {
+  init() {
+    pipes = initPipes()
+  },
   draw() {
     background.draw()
+    pipes.draw()
     floor.draw()
 
     bird.draw()
@@ -225,6 +313,7 @@ screens.GAME = {
   },
   update() {
     floor.update()
+    pipes.update()
   }
 }
 
